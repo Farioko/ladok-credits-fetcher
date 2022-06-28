@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+USERNAME = "username@student.miun.se"
+PASSWORD = "password"
+
+SYNC_PERIOD_IN_SECONDS = 12 * 60 * 60
+TIMEOUT_IN_SECONDS = 30
+
+import os, sys
+from datetime import datetime
+
+CACHE_DIR = os.path.expanduser("~/.cache/ladok")
+
+if not os.path.isdir(CACHE_DIR):
+    os.mkdir(CACHE_DIR)
+
+CREDITS_FILE = os.path.join(CACHE_DIR, "credits.txt")
+
+if os.path.exists(CREDITS_FILE):
+    last_modified = datetime.fromtimestamp(os.path.getmtime(CREDITS_FILE))
+
+    if (datetime.now() - last_modified).total_seconds() < SYNC_PERIOD_IN_SECONDS:
+        print("File is still up to date, exiting...")
+        sys.exit()
+
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+options = Options()
+options.headless = False
+options.set_preference("permissions.default.image", 2)
+driver = webdriver.Firefox(options=options, service_log_path=os.devnull)
+
+driver.get("https://www.student.ladok.se/student/app/studentwebb/")
+
+access_button = WebDriverWait(driver, TIMEOUT_IN_SECONDS).until(
+    EC.visibility_of_element_located((By.CSS_SELECTOR, "ladok-inloggning a"))
+)
+
+access_button.click()
+
+driver.switch_to.default_content()
+
+uni_search_input = WebDriverWait(driver, TIMEOUT_IN_SECONDS).until(
+    EC.element_to_be_clickable((By.ID, "searchinput")),
+)
+
+uni_search_input.click()
+uni_search_input.clear()
+uni_search_input.send_keys("Mid Sweden University")
+uni_search_input.send_keys(Keys.RETURN)
+
+uni_link = WebDriverWait(driver, TIMEOUT_IN_SECONDS).until(
+    EC.visibility_of_element_located((By.CSS_SELECTOR, "#resultwidget li"))
+)
+
+uni_link.click()
+
+driver.switch_to.default_content()
+
+username_input = WebDriverWait(driver, TIMEOUT_IN_SECONDS).until(
+    EC.visibility_of_element_located((By.ID, "userNameInput"))
+)
+
+password_input = WebDriverWait(driver, TIMEOUT_IN_SECONDS).until(
+    EC.visibility_of_element_located((By.ID, "passwordInput"))
+)
+
+username_input.click()
+username_input.clear()
+username_input.send_keys(USERNAME)
+
+password_input.click()
+password_input.clear()
+password_input.send_keys(PASSWORD)
+
+login_button = WebDriverWait(driver, TIMEOUT_IN_SECONDS).until(
+    EC.visibility_of_element_located((By.ID, "submitButton"))
+)
+
+login_button.click()
+
+driver.switch_to.default_content()
+
+# Wait until this page is rendered before moving to the next page
+courses = WebDriverWait(driver, TIMEOUT_IN_SECONDS).until(
+    EC.visibility_of_element_located((By.TAG_NAME, "ladok-aktuella-kurser"))
+)
+
+driver.get("https://www.student.ladok.se/student/app/studentwebb/min-utbildning/alla")
+
+credits = WebDriverWait(driver, TIMEOUT_IN_SECONDS).until(
+    EC.visibility_of_element_located((By.CSS_SELECTOR, "ladok-poang-summeringar dd:nth-child(2) > span:nth-child(2)"))
+)
+
+with open(CREDITS_FILE, "w") as credits_file:
+    credits_file.writelines(credits.text)
+
+print("The credits file was successfully updated!")
+
+driver.close()
