@@ -31,7 +31,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 options = Options()
-options.headless = False
+options.headless = True
 options.set_preference("permissions.default.image", 2)
 driver = webdriver.Firefox(options=options, service_log_path=os.devnull)
 
