@@ -31,9 +31,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 options = Options()
-options.headless = True
+options.add_argument("-headless")
 options.set_preference("permissions.default.image", 2)
-driver = webdriver.Firefox(options=options, service_log_path=os.devnull)
+driver = webdriver.Firefox(options=options)
 
 driver.get("https://www.student.ladok.se/student/app/studentwebb/")
 
